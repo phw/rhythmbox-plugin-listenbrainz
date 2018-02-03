@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+    <schema path="/org/gnome/rhythmbox/plugins/listenbrainz/" id="org.gnome.rhythmbox.plugins.listenbrainz">
+        <key type="s" name="user-token">
+            <default>""</default>
+            <summary>ListenBrainz user token</summary>
+            <description></description>
+        </key>
+    </schema>
+</schemalist>
