@@ -46,7 +46,7 @@ class ListenBrainzSettings(GObject.Object, PeasGtk.Configurable):
     def do_create_configure_widget(self):
         self.settings = load_settings()
 
-        ui_file = rb.find_plugin_file(self, "listenbrainz-settings.ui")
+        ui_file = rb.find_plugin_file(self, "settings.ui")
         self.builder = Gtk.Builder()
         self.builder.add_from_file(ui_file)
 
