@@ -38,6 +38,13 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
 
     def __init__(self):
         GObject.Object.__init__(self)
+        self.settings = None
+        self.__client = None
+        self.__current_entry = None
+        self.__current_start_time = 0
+        self.__current_elapsed = 0
+
+    def do_activate(self):
         self.settings = load_settings()
         self.__client = ListenBrainzClient()
         self.settings.connect("changed::user-token",
@@ -46,31 +53,21 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         self.__current_entry = None
         self.__current_start_time = 0
         self.__current_elapsed = 0
-
-    def do_activate(self):
-        shell = self.object
-        shell.props.shell_player.connect("playing-song-changed",
-                                         self.on_playing_song_changed)
-        shell.props.shell_player.connect("elapsed-changed",
-                                         self.on_elapsed_changed)
+        shell_player = self.object.props.shell_player
+        shell_player.connect("playing-song-changed",
+                             self.on_playing_song_changed)
+        shell_player.connect("elapsed-changed", self.on_elapsed_changed)
 
     def do_deactivate(self):
-        pass
+        shell_player = self.object.props.shell_player
+        shell_player.disconnect_by_func(self.on_playing_song_changed)
+        shell_player.disconnect_by_func(self.on_elapsed_changed)
+        self.settings.disconnect_by_func(self.on_user_token_changed)
 
     def on_playing_song_changed(self, player, entry):
         logger.debug("playing-song-changed: %r, %r", player, entry)
 
-        if self.__current_entry is not None:
-            duration = self.__current_entry.get_ulong(
-                            RB.RhythmDBPropType.DURATION)
-            elapsed = self.__current_elapsed
-            logger.debug("Elapsed: %s / %s", elapsed, duration)
-            if elapsed >= 240 or elapsed >= duration / 2:
-                track = _entry_to_track(self.__current_entry)
-                try:
-                    self.__client.listen(self.__current_start_time, track)
-                except Exception as e:
-                    self._handle_exception(e)
+        self._submit_current_entry()
 
         self.__current_entry = entry
         self.__current_elapsed = 0
@@ -92,6 +89,19 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
 
     def on_user_token_changed(self, settings, key="user-token"):
         self.__client.user_token = settings.get_string("user-token")
+
+    def _submit_current_entry(self):
+        if self.__current_entry is not None:
+            duration = self.__current_entry.get_ulong(
+                            RB.RhythmDBPropType.DURATION)
+            elapsed = self.__current_elapsed
+            logger.debug("Elapsed: %s / %s", elapsed, duration)
+            if elapsed >= 240 or elapsed >= duration / 2:
+                track = _entry_to_track(self.__current_entry)
+                try:
+                    self.__client.listen(self.__current_start_time, track)
+                except Exception as e:
+                    self._handle_exception(e)
 
     def _handle_exception(self, e):
         logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
