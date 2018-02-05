@@ -80,9 +80,8 @@ class ListenBrainzClient:
         @param listened_at as int
         @param entry as Track
         """
-        payload = _get_payload(track)
-        payload[0]["listened_at"] = listened_at
-        return self._submit("single", payload)
+        payload = _get_payload(track, listened_at)
+        return self._submit("single", [payload])
 
     def playing_now(self, track):
         """
@@ -90,7 +89,15 @@ class ListenBrainzClient:
         @param track as Track
         """
         payload = _get_payload(track)
-        return self._submit("playing_now", payload)
+        return self._submit("playing_now", [payload])
+
+    def import_tracks(self, tracks):
+        """
+        Import a list of tracks as (listened_at, Track) pairs
+        @param track as [(int, Track)]
+        """
+        payload = _get_payload_many(tracks)
+        return self._submit("import", payload)
 
     def _submit(self, listen_type, payload, retry=0):
         self._wait_for_ratelimit()
@@ -140,7 +147,18 @@ class ListenBrainzClient:
             self.__next_request_time = time.time() + reset_in
 
 
-def _get_payload(track):
-    return [{
+def _get_payload_many(tracks):
+    payload = []
+    for (listened_at, track) in tracks:
+        data = _get_payload(track, listened_at)
+        payload.append(data)
+    return payload
+
+
+def _get_payload(track, listened_at=None):
+    data = {
         "track_metadata": track.to_dict()
-    }]
+    }
+    if listened_at is not None:
+        data["listened_at"] = listened_at
+    return data

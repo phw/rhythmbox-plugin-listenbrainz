@@ -26,6 +26,7 @@ from gi.repository import GObject
 from gi.repository import Peas
 from gi.repository import RB
 from .listenbrainz import ListenBrainzClient, Track
+from .queue import ListenBrainzQueue
 from .settings import ListenBrainzSettings, load_settings
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
@@ -53,6 +54,9 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         self.__current_entry = None
         self.__current_start_time = 0
         self.__current_elapsed = 0
+        self.__queue = ListenBrainzQueue(self.__client)
+        self.__queue.activate()
+        self.__queue.load()
         shell_player = self.object.props.shell_player
         shell_player.connect("playing-song-changed",
                              self.on_playing_song_changed)
@@ -63,6 +67,8 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         shell_player.disconnect_by_func(self.on_playing_song_changed)
         shell_player.disconnect_by_func(self.on_elapsed_changed)
         self.settings.disconnect_by_func(self.on_user_token_changed)
+        self.__queue.deactivate()
+        self.__queue.save()
 
     def on_playing_song_changed(self, player, entry):
         logger.debug("playing-song-changed: %r, %r", player, entry)
@@ -99,7 +105,7 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
             if elapsed >= 240 or elapsed >= duration / 2:
                 track = _entry_to_track(self.__current_entry)
                 try:
-                    self.__client.listen(self.__current_start_time, track)
+                    self.__queue.add(self.__current_start_time, track)
                 except Exception as e:
                     self._handle_exception(e)
 
