@@ -25,8 +25,8 @@ import time
 from gi.repository import GObject
 from gi.repository import Peas
 from gi.repository import RB
-from listenbrainz_client import ListenBrainzClient, Track
-from listenbrainz_settings import ListenBrainzSettings, load_settings
+from .listenbrainz import ListenBrainzClient, Track
+from .settings import ListenBrainzSettings, load_settings
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 logger = logging.getLogger(__name__)
