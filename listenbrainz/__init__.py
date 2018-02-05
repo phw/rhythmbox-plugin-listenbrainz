@@ -106,10 +106,10 @@ def _entry_to_track(entry):
     mb_album_id = entry.get_string(RB.RhythmDBPropType.MB_ALBUMID)
     mb_artist_id = entry.get_string(RB.RhythmDBPropType.MB_ARTISTID)
     additional_info = {
-        "release_mbid": mb_album_id,
-        "recording_mbid": mb_track_id,
-        "artist_mbids": [mb_artist_id],
-        "tracknumber": track_number
+        "release_mbid": mb_album_id or None,
+        "recording_mbid": mb_track_id or None,
+        "artist_mbids": [mb_artist_id] if mb_artist_id else [],
+        "tracknumber": track_number or None
     }
     return Track(artist, title, album, additional_info)
 

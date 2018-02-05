@@ -58,6 +58,9 @@ class Track:
             "additional_info": self.additional_info
         }
 
+    def __repr__(self):
+        return "Track(%s, %s)" % (self.artist_name, self.track_name)
+
 
 class ListenBrainzClient:
     """
@@ -91,6 +94,7 @@ class ListenBrainzClient:
 
     def _submit(self, listen_type, payload, retry=0):
         self._wait_for_ratelimit()
+        self.logger.debug("ListenBrainz %s: %r", listen_type, payload)
         data = {
             "listen_type": listen_type,
             "payload": payload
@@ -103,7 +107,11 @@ class ListenBrainzClient:
         conn = HTTPSConnection(HOST_NAME, context=SSL_CONTEXT)
         conn.request("POST", PATH_SUBMIT, body, headers)
         response = conn.getresponse()
-        response_data = json.loads(response.read())
+        response_text = response.read()
+        try:
+            response_data = json.loads(response_text)
+        except json.decoder.JSONDecodeError:
+            response_data = response_text
 
         self._handle_ratelimit(response)
         log_msg = "Response %s: %r" % (response.status, response_data)
