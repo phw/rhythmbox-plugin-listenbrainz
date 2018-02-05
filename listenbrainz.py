@@ -19,13 +19,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import logging
+import sys
 import time
 from gi.repository import GObject
 from gi.repository import Peas
 from gi.repository import RB
 from listenbrainz_client import ListenBrainzClient, Track
-from listenbrainz_settings import ListenBrainzSettings
-from listenbrainz_utils import debug, load_settings
+from listenbrainz_settings import ListenBrainzSettings, load_settings
+
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
@@ -44,8 +48,6 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         self.__current_elapsed = 0
 
     def do_activate(self):
-        debug("activating ListenBrainz plugin")
-
         shell = self.object
         shell.props.shell_player.connect("playing-song-changed",
                                          self.on_playing_song_changed)
@@ -53,19 +55,22 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
                                          self.on_elapsed_changed)
 
     def do_deactivate(self):
-        debug("deactivating ListenBrainz plugin")
+        pass
 
     def on_playing_song_changed(self, player, entry):
-        debug("playing-song-changed: %r, %r" % (player, entry))
+        logger.debug("playing-song-changed: %r, %r", player, entry)
 
         if self.__current_entry is not None:
             duration = self.__current_entry.get_ulong(
                             RB.RhythmDBPropType.DURATION)
             elapsed = self.__current_elapsed
-            debug("Elapsed: %s / %s" % (elapsed, duration))
+            logger.debug("Elapsed: %s / %s", elapsed, duration)
             if elapsed >= 240 or elapsed >= duration / 2:
-                track = self.__entry_to_track(self.__current_entry)
-                self.__client.listen(self.__current_start_time, track)
+                track = _entry_to_track(self.__current_entry)
+                try:
+                    self.__client.listen(self.__current_start_time, track)
+                except Exception as e:
+                    self._handle_exception(e)
 
         self.__current_entry = entry
         self.__current_elapsed = 0
@@ -74,32 +79,39 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
             return
 
         self.__current_start_time = int(time.time())
-        track = self.__entry_to_track(entry)
-        self.__client.playing_now(track)
+        track = _entry_to_track(entry)
+        try:
+            self.__client.playing_now(track)
+        except Exception as e:
+            self.__handle_exception(e)
 
     def on_elapsed_changed(self, player, elapsed):
-        # debug("elapsed-changed: %r, %i" % (player, elapsed))
+        # logger.debug("elapsed-changed: %r, %i" % (player, elapsed))
         if player.get_playing_entry() == self.__current_entry:
             self.__current_elapsed += 1
 
     def on_user_token_changed(self, settings, key="user-token"):
         self.__client.user_token = settings.get_string("user-token")
 
-    def __entry_to_track(self, entry):
-        artist = entry.get_string(RB.RhythmDBPropType.ARTIST)
-        title = entry.get_string(RB.RhythmDBPropType.TITLE)
-        album = entry.get_string(RB.RhythmDBPropType.ALBUM)
-        track_number = entry.get_ulong(RB.RhythmDBPropType.TRACK_NUMBER)
-        mb_track_id = entry.get_string(RB.RhythmDBPropType.MB_TRACKID)
-        mb_album_id = entry.get_string(RB.RhythmDBPropType.MB_ALBUMID)
-        mb_artist_id = entry.get_string(RB.RhythmDBPropType.MB_ARTISTID)
-        additional_info = {
-            "release_mbid": mb_album_id,
-            "recording_mbid": mb_track_id,
-            "artist_mbids": [mb_artist_id],
-            "tracknumber": track_number
-        }
-        return Track(artist, title, album, additional_info)
+    def _handle_exception(self, e):
+        logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
+
+
+def _entry_to_track(entry):
+    artist = entry.get_string(RB.RhythmDBPropType.ARTIST)
+    title = entry.get_string(RB.RhythmDBPropType.TITLE)
+    album = entry.get_string(RB.RhythmDBPropType.ALBUM)
+    track_number = entry.get_ulong(RB.RhythmDBPropType.TRACK_NUMBER)
+    mb_track_id = entry.get_string(RB.RhythmDBPropType.MB_TRACKID)
+    mb_album_id = entry.get_string(RB.RhythmDBPropType.MB_ALBUMID)
+    mb_artist_id = entry.get_string(RB.RhythmDBPropType.MB_ARTISTID)
+    additional_info = {
+        "release_mbid": mb_album_id,
+        "recording_mbid": mb_track_id,
+        "artist_mbids": [mb_artist_id],
+        "tracknumber": track_number
+    }
+    return Track(artist, title, album, additional_info)
 
 
 GObject.type_register(ListenBrainzSettings)

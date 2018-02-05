@@ -19,12 +19,22 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import os
+import rb
+from gi.repository import Gio
 from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import PeasGtk
-from listenbrainz_utils import load_settings
 
-import rb
+
+def load_settings():
+    settings_dir = os.path.dirname(os.path.realpath(__file__))
+    settings_dir = os.path.join(settings_dir, "schema")
+    schema_source = Gio.SettingsSchemaSource.new_from_directory(settings_dir,
+                                                                None, False)
+    schema = schema_source.lookup("org.gnome.rhythmbox.plugins.listenbrainz",
+                                  False)
+    return Gio.Settings.new_full(schema, None, None)
 
 
 class ListenBrainzSettings(GObject.Object, PeasGtk.Configurable):

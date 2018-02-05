@@ -20,10 +20,10 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import json
+import logging
 import ssl
 import time
 from http.client import HTTPSConnection
-from listenbrainz_utils import debug, error
 
 HOST_NAME = "api.listenbrainz.org"
 PATH_SUBMIT = "/1/submit-listens"
@@ -66,9 +66,10 @@ class ListenBrainzClient:
     See https://listenbrainz.readthedocs.io/en/latest/dev/api.html
     """
 
-    def __init__(self):
+    def __init__(self, logger=logging.getLogger(__name__)):
         self.__next_request_time = 0
         self.user_token = None
+        self.logger = logger
 
     def listen(self, listened_at, track):
         """
@@ -76,21 +77,20 @@ class ListenBrainzClient:
         @param listened_at as int
         @param entry as Track
         """
-        payload = self.__get_payload(track)
+        payload = _get_payload(track)
         payload[0]["listened_at"] = listened_at
-        self.__submit("single", payload)
+        return self._submit("single", payload)
 
     def playing_now(self, track):
         """
         Submit a playing now notification for a track
         @param track as Track
         """
-        payload = self.__get_payload(track)
-        self.__submit("playing_now", payload)
+        payload = _get_payload(track)
+        return self._submit("playing_now", payload)
 
-    def __submit(self, listen_type, payload, retry=0):
-        self.__wait_for_ratelimit()
-        debug("ListenBrainz %s: %r" % (listen_type, payload))
+    def _submit(self, listen_type, payload, retry=0):
+        self._wait_for_ratelimit()
         data = {
             "listen_type": listen_type,
             "payload": payload
@@ -101,41 +101,38 @@ class ListenBrainzClient:
         }
         body = json.dumps(data)
         conn = HTTPSConnection(HOST_NAME, context=SSL_CONTEXT)
-        try:
-            conn.request("POST", PATH_SUBMIT, body, headers)
-            response = conn.getresponse()
-            response_data = json.loads(response.read())
-            if response.status == 200:
-                debug("ListenBrainz response %s: %r" % (response.status,
-                                                        response_data))
-            else:
-                error("ListenBrainz error %s: %r" % (response.status,
-                                                     response_data))
-            self.__handle_ratelimit(response)
-            # Too Many Requests
-            if response.status == 429 and retry < 5:
-                self.__request(listen_type, payload, retry + 1)
-        except Exception as e:
-            error("ListenBrainz::__submit():", e)
+        conn.request("POST", PATH_SUBMIT, body, headers)
+        response = conn.getresponse()
+        response_data = json.loads(response.read())
 
-    def __wait_for_ratelimit(self):
+        self._handle_ratelimit(response)
+        log_msg = "Response %s: %r" % (response.status, response_data)
+        if response.status == 429 and retry < 5:  # Too Many Requests
+            self.logger.warning(log_msg)
+            return self._submit(listen_type, payload, retry + 1)
+        elif response.status == 200:
+            self.logger.debug(log_msg)
+        else:
+            self.logger.error(log_msg)
+        return response
+
+    def _wait_for_ratelimit(self):
         now = time.time()
         if self.__next_request_time > now:
             delay = self.__next_request_time - now
-            debug("ListenBrainz rate limit applies, delay %d" % delay)
+            self.logger.debug("Rate limit applies, delay %d", delay)
             time.sleep(delay)
 
-    def __handle_ratelimit(self, response):
+    def _handle_ratelimit(self, response):
         remaining = int(response.getheader("X-RateLimit-Remaining", 0))
         reset_in = int(response.getheader("X-RateLimit-Reset-In", 0))
-        debug("ListenBrainz X-RateLimit-Remaining: %i" % remaining)
-        debug("ListenBrainz X-RateLimit-Reset-In: %i" % reset_in)
+        self.logger.debug("X-RateLimit-Remaining: %i", remaining)
+        self.logger.debug("X-RateLimit-Reset-In: %i", reset_in)
         if remaining == 0:
             self.__next_request_time = time.time() + reset_in
 
-    def __get_payload(self, track):
-        payload = {
-            "track_metadata": track.to_dict()
-        }
 
-        return [payload]
+def _get_payload(track):
+    return [{
+        "track_metadata": track.to_dict()
+    }]
