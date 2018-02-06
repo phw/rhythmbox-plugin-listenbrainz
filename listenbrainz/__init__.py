@@ -55,8 +55,11 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         self.__current_start_time = 0
         self.__current_elapsed = 0
         self.__queue = ListenBrainzQueue(self.__client)
+        try:
+            self.__queue.load()
+        except Exception as e:
+            self._handle_exception(e)
         self.__queue.activate()
-        self.__queue.load()
         shell_player = self.object.props.shell_player
         shell_player.connect("playing-song-changed",
                              self.on_playing_song_changed)
@@ -68,6 +71,7 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         shell_player.disconnect_by_func(self.on_elapsed_changed)
         self.settings.disconnect_by_func(self.on_user_token_changed)
         self.__queue.deactivate()
+        self.__queue.submit_batch()
         self.__queue.save()
 
     def on_playing_song_changed(self, player, entry):
@@ -86,7 +90,7 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         try:
             self.__client.playing_now(track)
         except Exception as e:
-            self.__handle_exception(e)
+            self._handle_exception(e)
 
     def on_elapsed_changed(self, player, elapsed):
         # logger.debug("elapsed-changed: %r, %i" % (player, elapsed))

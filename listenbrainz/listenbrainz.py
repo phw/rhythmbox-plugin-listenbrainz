@@ -50,6 +50,15 @@ class Track:
         self.release_name = release_name
         self.additional_info = additional_info
 
+    @staticmethod
+    def from_dict(data):
+        return Track(
+            data["artist_name"],
+            data["track_name"],
+            data.get("release_name", None),
+            data.get("additional_info", {})
+        )
+
     def to_dict(self):
         return {
             "artist_name": self.artist_name,

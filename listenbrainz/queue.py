@@ -19,8 +19,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import json
 import logging
+import os
 from gi.repository import GLib
+from .listenbrainz import Track
 
 MAX_TRACKS_PER_IMPORT = 10
 
@@ -34,31 +37,41 @@ class ListenBrainzQueue:
         self.__queue = []
 
     def activate(self):
-        self.__timeout_id = GLib.timeout_add_seconds(30, self.submit_all)
+        self.submit_batch()
+        self.__timeout_id = GLib.timeout_add_seconds(30, self.submit_batch)
 
     def deactivate(self):
         GLib.source_remove(self.__timeout_id)
 
     def add(self, listened_at, track):
         try:
-            # response = self.__client.listen(listened_at, track)
-            # if response.status in [401, 429] or response.status >= 500:
-            self._append(listened_at, track)
+            # Try to submit immediatelly, and queue if it fails
+            response = self.__client.listen(listened_at, track)
+            if response.status in [401, 429] or response.status >= 500:
+                self._append(listened_at, track)
         except Exception as e:
             logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
             self._append(listened_at, track)
 
     def load(self):
-        logger.debug("Loading queue from disk")
+        cache_file = self.get_cache_file_path()
+        if os.path.exists(cache_file):
+            logger.debug("Loading queue from %s", cache_file)
+            self.__queue = json.load(open(cache_file), object_hook=from_json)
 
     def save(self):
-        logger.debug("Saving queue to disk")
+        cache_file = self.get_cache_file_path()
+        cache_dir = os.path.dirname(cache_file)
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+        logger.debug("Saving queue to %s", cache_file)
+        json.dump(self.__queue, open(cache_file, 'w'), cls=QueueEncoder)
 
     def _append(self, listened_at, track):
         logger.debug("Queuing for later submission %s: %s", listened_at, track)
         self.__queue.append((listened_at, track))
 
-    def submit_all(self):
+    def submit_batch(self):
         if len(self.__queue) == 0:
             return True
         logger.debug("Submitting %d queued entries", len(self.__queue))
@@ -74,3 +87,20 @@ class ListenBrainzQueue:
         except Exception as e:
             logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
         return True
+
+    def get_cache_file_path(self):
+        return os.path.join(GLib.get_user_cache_dir(), "rhythmbox",
+                            "listenbrainz-queue.json")
+
+
+class QueueEncoder(json.JSONEncoder):
+    def default(self, o):
+        if type(o) is Track:
+            return o.to_dict()
+        return super(json.JSONEncoder, self).default(o)
+
+
+def from_json(json_object):
+    if 'artist_name' in json_object:
+        return Track.from_dict(json_object)
+    return json_object
