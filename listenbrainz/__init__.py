@@ -58,7 +58,7 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         try:
             self.__queue.load()
         except Exception as e:
-            self._handle_exception(e)
+            _handle_exception(e)
         self.__queue.activate()
         shell_player = self.object.props.shell_player
         shell_player.connect("playing-song-changed",
@@ -82,7 +82,8 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         self.__current_entry = entry
         self.__current_elapsed = 0
 
-        if entry is None:
+        if not _can_be_listened(entry):
+            self.__current_entry = None
             return
 
         self.__current_start_time = int(time.time())
@@ -90,7 +91,7 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
         try:
             self.__client.playing_now(track)
         except Exception as e:
-            self._handle_exception(e)
+            _handle_exception(e)
 
     def on_elapsed_changed(self, player, elapsed):
         # logger.debug("elapsed-changed: %r, %i" % (player, elapsed))
@@ -111,10 +112,38 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
                 try:
                     self.__queue.add(self.__current_start_time, track)
                 except Exception as e:
-                    self._handle_exception(e)
+                    _handle_exception(e)
 
-    def _handle_exception(self, e):
-        logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
+
+def _can_be_listened(entry):
+    if entry is None:
+        return False
+
+    entry_type = entry.get_entry_type()
+    category = entry_type.get_property("category")
+    title = entry.get_string(RB.RhythmDBPropType.TITLE)
+    error = entry.get_string(RB.RhythmDBPropType.PLAYBACK_ERROR)
+
+    if category != RB.RhythmDBEntryCategory.NORMAL:
+        logger.debug("Cannot submit %r: Category %s" %
+                     (title, category.value_name))
+        return False
+
+    if entry_type.get_name() != "song":
+        logger.debug("Cannot submit listen%r: Entry type %s" %
+                     (title, entry_type.get_name()))
+        return False
+
+    if error is not None:
+        logger.debug("Cannot submit %r: Playback error %s" %
+                     (title, error))
+        return False
+
+    return True
+
+
+def _handle_exception(e):
+    logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
 
 
 def _entry_to_track(entry):
