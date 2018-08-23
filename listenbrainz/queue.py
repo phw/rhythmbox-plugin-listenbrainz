@@ -23,11 +23,11 @@ import json
 import logging
 import os
 from gi.repository import GLib
-from .listenbrainz import Track
+from .client import Track
 
 MAX_TRACKS_PER_IMPORT = 10
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("listenbrainz")
 
 
 class ListenBrainzQueue:
