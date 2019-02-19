@@ -26,9 +26,9 @@ import time
 from gi.repository import GObject
 from gi.repository import Peas
 from gi.repository import RB
-from .client import ListenBrainzClient, Track
-from .queue import ListenBrainzQueue
-from .settings import ListenBrainzSettings, load_settings
+from client import ListenBrainzClient, Track
+from queue import ListenBrainzQueue
+from settings import ListenBrainzSettings, load_settings
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

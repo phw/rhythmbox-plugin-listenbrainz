@@ -23,7 +23,7 @@ import json
 import logging
 import os
 from gi.repository import GLib
-from .client import Track
+from client import Track
 
 MAX_TRACKS_PER_IMPORT = 10
 

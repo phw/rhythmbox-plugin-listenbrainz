@@ -1,9 +1,10 @@
 [Plugin]
 Loader=python3
 Module=listenbrainz
+Depends=rb
 IAge=2
 Name=ListenBrainz
 Description=Submit your listens to ListenBrainz
 Authors=Philipp Wolfer <ph.wolfer@gmail.com>
-Copyright=Copyright © 2018 Philipp Wolfer
+Copyright=Copyright © 2018-2019 Philipp Wolfer
 Website=https://github.com/phw/rhythmbox-plugin-listenbrainz
