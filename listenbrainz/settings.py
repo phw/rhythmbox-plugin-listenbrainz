@@ -32,10 +32,10 @@ def load_settings():
     settings_dir = os.path.dirname(os.path.realpath(__file__))
     settings_dir = os.path.join(settings_dir, "schema")
     try:
-        schema_source = Gio.SettingsSchemaSource.new_from_directory(settings_dir,
-                                                                    None, False)
-        schema = schema_source.lookup("org.gnome.rhythmbox.plugins.listenbrainz",
-                                      False)
+        schema_source = Gio.SettingsSchemaSource.new_from_directory(
+            settings_dir, None, False)
+        schema = schema_source.lookup(
+            "org.gnome.rhythmbox.plugins.listenbrainz", False)
         return Gio.Settings.new_full(schema, None, None)
     except GLib.Error:
         return Gio.Settings.new("org.gnome.rhythmbox.plugins.listenbrainz")
