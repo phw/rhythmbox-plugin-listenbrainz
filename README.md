@@ -4,7 +4,8 @@ Listen to the Rhythm! Submit your listens to [ListenBrainz](https://listenbrainz
 
 ## Install
 
-Copy all files to `$HOME/.local/share/rhythmbox/plugins/` and run:
+Copy the `listenbrainz` directory and all included files to
+`$HOME/.local/share/rhythmbox/plugins/` and run:
 
     glib-compile-schemas $HOME/.local/share/rhythmbox/plugins/listenbrainz/schema
 
