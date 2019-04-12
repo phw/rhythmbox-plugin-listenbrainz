@@ -57,7 +57,7 @@ class ListenBrainzQueue:
         cache_file = self.get_cache_file_path()
         if os.path.exists(cache_file):
             logger.debug("Loading queue from %s", cache_file)
-            with open(cache_file):
+            with open(cache_file) as f:
                 self.__queue = json.load(f, object_hook=from_json)
 
     def save(self):
@@ -66,7 +66,7 @@ class ListenBrainzQueue:
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         logger.debug("Saving queue to %s", cache_file)
-        with open(cache_file, 'w'):
+        with open(cache_file, 'w') as f:
             json.dump(self.__queue, f, cls=QueueEncoder)
 
     def _append(self, listened_at, track):
