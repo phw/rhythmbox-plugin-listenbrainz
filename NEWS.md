@@ -1,5 +1,8 @@
 # Rhythmbox ListenBrainz Changelog
 
+## 1.2.2 - 2019-04-12
+Fixed queue cache loading / saving.
+
 ## 1.2.1 - 2019-04-12
 Properly close file handle when reading / saving queue cache.
 
