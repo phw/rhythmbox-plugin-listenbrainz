@@ -1,4 +1,6 @@
-project('rhythmbox-plugin-listenbrainz')
+project('rhythmbox-plugin-listenbrainz',
+  version: '1.2.3',
+)
 
 install_data('listenbrainz/schema/org.gnome.rhythmbox.plugins.listenbrainz.gschema.xml',
   install_dir: join_paths(get_option('datadir'), 'glib-2.0/schemas')

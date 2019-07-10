@@ -1,5 +1,9 @@
 # Rhythmbox ListenBrainz Changelog
 
+## 1.2.3 - 2019-07-10
+- Simple Meson install script
+- Minor code cleanup
+
 ## 1.2.2 - 2019-04-12
 Fixed queue cache loading / saving.
 
