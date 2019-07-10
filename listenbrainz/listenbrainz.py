@@ -30,13 +30,14 @@ from gi.repository import RB
 from client import ListenBrainzClient, Track
 from queue import ListenBrainzQueue
 from settings import ListenBrainzSettings, load_settings
+from util import log_exception
 
 
 UNSUPPORTED_TYPES = ('podcast-post')
 RE_MBID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 logger = logging.getLogger("listenbrainz")
 
 
@@ -68,7 +69,7 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
             try:
                 self.__queue.load()
             except Exception as e:
-                _handle_exception(e)
+                log_exception(e)
         self.__queue.activate()
         shell_player = self.object.props.shell_player
         shell_player.connect("playing-song-changed",
@@ -131,7 +132,7 @@ class ListenBrainzPlugin(GObject.Object, Peas.Activatable):
             try:
                 callable(*args)
             except Exception as e:
-                _handle_exception(e)
+                log_exception(e)
 
 
 def _can_be_listened(entry):
@@ -166,10 +167,6 @@ def _is_unidentified_audiocd(entry):
     entry_type = entry.get_entry_type()
     return (entry_type.get_name().startswith("audiocd")
             and not entry.get_string(RB.RhythmDBPropType.MB_ALBUMID))
-
-
-def _handle_exception(e):
-    logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
 
 
 def _entry_to_track(entry):

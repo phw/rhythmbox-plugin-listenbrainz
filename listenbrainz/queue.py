@@ -24,6 +24,7 @@ import logging
 import os
 from gi.repository import GLib
 from client import Track
+from util import log_exception
 
 MAX_TRACKS_PER_IMPORT = 10
 
@@ -50,7 +51,7 @@ class ListenBrainzQueue:
             if response.status in [401, 429] or response.status >= 500:
                 self._append(listened_at, track)
         except Exception as e:
-            logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
+            log_exception(e)
             self._append(listened_at, track)
 
     def load(self):
@@ -87,7 +88,7 @@ class ListenBrainzQueue:
             else:
                 self.__queue = []
         except Exception as e:
-            logger.error("ListenBrainz exception %s: %s", type(e).__name__, e)
+            log_exception(e)
         return True
 
     def get_cache_file_path(self):
