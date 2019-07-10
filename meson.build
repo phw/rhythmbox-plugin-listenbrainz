@@ -1,5 +1,5 @@
 project('rhythmbox-plugin-listenbrainz',
-  version: '1.2.4',
+  version: '1.2.5',
 )
 
 install_data('listenbrainz/schema/org.gnome.rhythmbox.plugins.listenbrainz.gschema.xml',
@@ -13,5 +13,5 @@ install_subdir('listenbrainz',
 )
 
 install_data('listenbrainz/settings.ui',
-  install_dir: join_paths(get_option('datadir'), 'rhythmbox/plugins')
+  install_dir: join_paths(get_option('datadir'), 'rhythmbox/plugins/listenbrainz')
 )
