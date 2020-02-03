@@ -1,15 +1,12 @@
 # ListenBrainz plugin for Rhythmbox
 
-
 Listen to the Rhythm! Submit your listens to [ListenBrainz](https://listenbrainz.org).
 
 ## Installation
 
+**Note:** This plugin is bundled in Rhythmbox 3.4.4 or later. If you are using an earlier version of Rhythmbox please see below on how to install this plugin.
+
 ### Distribution packages
-
-#### Arch Linux
-
-Install the [rhythmbox-plugin-listenbrainz](https://aur.archlinux.org/packages/rhythmbox-plugin-listenbrainz/) from the AUR.
 
 #### Ubuntu
 
